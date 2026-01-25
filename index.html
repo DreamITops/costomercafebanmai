@@ -2,124 +2,388 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>สั่งอาหาร</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สั่งอาหาร - ร้านอร่อย</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <style>
-        body { font-family: 'Kanit', sans-serif; background: #f8f9fa; padding-bottom: 80px; }
-        .header { background: white; padding: 15px; position: sticky; top: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 100; display:flex; justify-content:space-between; align-items:center; }
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
-        .menu-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .menu-img { width: 100%; height: 120px; object-fit: cover; background: #eee; }
-        .cart-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 15px 30px; border-radius: 50px; width: 90%; max-width: 400px; display: flex; justify-content: space-between; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
-        .add-btn { width: 100%; background: #ffc107; border: none; padding: 5px; font-weight: bold; cursor: pointer; }
+        body { font-family: 'Kanit', sans-serif; background: #f8f9fa; padding-bottom: 100px; -webkit-tap-highlight-color: transparent; }
+        
+        /* Header */
+        .header-glass {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            position: sticky; top: 0; z-index: 1000;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* Menu Grid */
+        .menu-container { padding: 15px; }
+        .menu-card {
+            background: white; border-radius: 15px; overflow: hidden; border: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.03); transition: transform 0.2s;
+            height: 100%; display: flex; flex-direction: column; cursor: pointer;
+        }
+        .menu-card:active { transform: scale(0.98); }
+        .menu-img { width: 100%; height: 140px; object-fit: cover; background-color: #eee; }
+        .menu-body { padding: 12px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        /* Floating Cart */
+        .float-cart {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 500px;
+            background: #212529; color: white;
+            padding: 12px 20px; border-radius: 50px;
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            cursor: pointer; z-index: 1050; transition: 0.3s;
+        }
+        .float-cart:active { transform: translateX(-50%) scale(0.95); }
+
+        /* Modal Custom */
+        .topping-check { transform: scale(1.3); margin-right: 8px; }
+        .topping-row { padding: 8px 0; border-bottom: 1px dashed #eee; display: flex; align-items: center; justify-content: space-between; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <h2 style="margin:0; color:#e67e22;">🍽️ ร้านอร่อย</h2>
-    <span id="tableDisplay" class="badge bg-secondary" style="background:#ddd; padding:5px 10px; border-radius:10px;">โต๊ะ ...</span>
+<div class="header-glass">
+    <div>
+        <h5 class="m-0 fw-bold text-warning">🍽️ ร้านอร่อย</h5>
+        <small class="text-muted" id="tableDisplay">กำลังระบุโต๊ะ...</small>
+    </div>
+    <div id="statusBadge" class="badge bg-success bg-opacity-10 text-success">พร้อมสั่ง</div>
 </div>
 
-<div id="menuContainer" class="menu-grid">Loading...</div>
+<div class="container menu-container">
+    <div id="menuGrid" class="row g-3">Loading...</div>
+</div>
 
-<div id="cartBar" class="cart-bar" style="display:none;" onclick="checkout()">
-    <span>🛒 <b id="cartCount">0</b> รายการ</span>
-    <span><b id="cartTotal">0</b> ฿ ></span>
+<div id="cartBar" class="float-cart d-none" onclick="openCartModal()">
+    <div class="d-flex align-items-center">
+        <span class="badge bg-warning text-dark me-2" id="cartCount">0</span>
+        <span>รายการในตะกร้า</span>
+    </div>
+    <div class="fw-bold"><span id="cartTotal">0</span> ฿ ></div>
+</div>
+
+<div class="modal fade" id="itemModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <div class="text-center mb-3">
+                    <h3 id="modalItemName" class="fw-bold mb-1">ชื่อเมนู</h3>
+                    <h4 class="text-primary fw-bold" id="modalItemPrice">0 ฿</h4>
+                </div>
+                
+                <div id="toppingSection" class="mb-4">
+                    <h6 class="text-muted fw-bold mb-2">ตัวเลือกเสริม (Toppings)</h6>
+                    <div id="toppingList" class="bg-light p-3 rounded">
+                        </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted small">หมายเหตุถึงครัว</label>
+                    <input type="text" id="itemNote" class="form-control" placeholder="เช่น ไม่เผ็ด, หวานน้อย">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button class="btn btn-primary w-100 py-3 rounded-4 fw-bold fs-5" onclick="confirmAddItem()">
+                    เพิ่มลงตะกร้า (<span id="modalBtnPrice">0</span> ฿)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="cartModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">🛒 ตะกร้าของฉัน</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cartListContainer"></div>
+            </div>
+            <div class="modal-footer d-block">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">ยอดรวมทั้งหมด</span>
+                    <span class="fw-bold fs-4 text-primary" id="modalCartTotal">0 ฿</span>
+                </div>
+                <button class="btn btn-success w-100 py-3 rounded-3 fw-bold" onclick="submitOrder()">🚀 ยืนยันการสั่งอาหาร</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    // Config ชุดเดียวกัน
+    // --- Config (ใช้ Key เดียวกับ Admin) ---
     const SUPABASE_URL = 'https://cgevinayobbjvbjdoofx.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnZXZpbmF5b2JianZiamRvb2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzMzgxNTAsImV4cCI6MjA4NDkxNDE1MH0.buNGHEPFeYNNhb2mSpn_Q9KrjOYu-dnxDooZ4Ogv7DI';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // --- State ---
+    let allMenu = [];
     let cart = [];
     let currentTable = null;
+    let selectedItemTemp = null; // เก็บข้อมูลชั่วคราวตอนเปิด Modal
 
+    // --- Init ---
     window.onload = async () => {
-        // เช็กเลขโต๊ะ
+        // 1. ระบุโต๊ะ
         const params = new URLSearchParams(window.location.search);
         currentTable = params.get('table');
         
         if(!currentTable) {
             const { value } = await Swal.fire({
-                title: 'เลือกโต๊ะ',
+                title: 'กรุณาเลือกโต๊ะ',
                 input: 'select',
-                inputOptions: { '1': 'โต๊ะ 1', '2': 'โต๊ะ 2', '3': 'โต๊ะ 3' },
-                allowOutsideClick: false
+                inputOptions: {'1':'โต๊ะ 1', '2':'โต๊ะ 2', '3':'โต๊ะ 3', '4':'โต๊ะ 4', '5':'โต๊ะ 5'},
+                allowOutsideClick: false,
+                confirmButtonText: 'เข้าร้าน'
             });
             currentTable = value;
         }
         document.getElementById('tableDisplay').innerText = `โต๊ะ ${currentTable}`;
-        
+
+        // 2. โหลดเมนู
         loadMenu();
+        
+        // 3. ฟังสถานะออเดอร์
         subscribeRealtime();
     };
 
     async function loadMenu() {
-        const { data, error } = await db.from('menu_items').select('*').eq('is_available', true);
-        if(error) return alert("โหลดเมนูไม่สำเร็จ");
+        // ดึงเฉพาะเมนูที่ขายอยู่ (is_available = true)
+        const { data, error } = await db.from('menu_items').select('*').eq('is_available', true).order('id');
+        if(error) return console.error(error);
         
-        const div = document.getElementById('menuContainer');
-        div.innerHTML = '';
-        data.forEach(m => {
-            div.innerHTML += `
-                <div class="menu-card">
-                    <img src="${m.image_url}" class="menu-img">
-                    <div style="padding:10px;">
-                        <div style="font-weight:bold;">${m.name}</div>
-                        <div style="color:#e67e22;">${m.price} ฿</div>
-                        <button class="add-btn mt-2" onclick="addToCart('${m.name}', ${m.price})">ใส่ตะกร้า +</button>
+        allMenu = data;
+        renderMenuGrid();
+    }
+
+    function renderMenuGrid() {
+        const grid = document.getElementById('menuGrid');
+        grid.innerHTML = '';
+        
+        allMenu.forEach((item, index) => {
+            // เช็คว่ามีรูปไหม ถ้าไม่มีใช้ Placeholder
+            const imgUrl = item.image_url || 'https://via.placeholder.com/300x200?text=No+Image';
+            
+            grid.innerHTML += `
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="menu-card" onclick="openItemModal(${index})">
+                        <img src="${imgUrl}" class="menu-img">
+                        <div class="menu-body">
+                            <h6 class="fw-bold mb-1 text-truncate">${item.name}</h6>
+                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <span class="text-primary fw-bold">${item.price} ฿</span>
+                                <span class="badge bg-warning text-dark rounded-circle">+</span>
+                            </div>
+                        </div>
                     </div>
-                </div>`;
+                </div>
+            `;
         });
     }
 
-    function addToCart(name, price) {
-        cart.push({name, price});
-        updateCart();
+    // --- Modal Selection Logic ---
+    function openItemModal(index) {
+        selectedItemTemp = allMenu[index];
+        
+        // Reset Modal UI
+        document.getElementById('modalItemName').innerText = selectedItemTemp.name;
+        document.getElementById('modalItemPrice').innerText = selectedItemTemp.price + ' ฿';
+        document.getElementById('itemNote').value = '';
+        document.getElementById('modalBtnPrice').innerText = selectedItemTemp.price;
+        
+        // Render Toppings
+        const toppingDiv = document.getElementById('toppingList');
+        toppingDiv.innerHTML = '';
+        
+        if (selectedItemTemp.toppings && selectedItemTemp.toppings.length > 0) {
+            document.getElementById('toppingSection').classList.remove('d-none');
+            selectedItemTemp.toppings.forEach((t, i) => {
+                toppingDiv.innerHTML += `
+                    <div class="topping-row" onclick="document.getElementById('top_${i}').click()">
+                        <label class="form-check-label flex-grow-1" for="top_${i}">${t.name}</label>
+                        <span class="text-muted me-2">+${t.price}</span>
+                        <input class="form-check-input topping-check" type="checkbox" value="${i}" id="top_${i}" onchange="calculateModalTotal()">
+                    </div>
+                `;
+            });
+        } else {
+            document.getElementById('toppingSection').classList.add('d-none');
+        }
+
+        new bootstrap.Modal(document.getElementById('itemModal')).show();
     }
 
-    function updateCart() {
-        document.getElementById('cartCount').innerText = cart.length;
-        document.getElementById('cartTotal').innerText = cart.reduce((a,b)=>a+b.price, 0);
-        document.getElementById('cartBar').style.display = cart.length ? 'flex' : 'none';
-    }
-
-    async function checkout() {
-        const result = await Swal.fire({
-            title: 'ยืนยันสั่งอาหาร?',
-            text: `รวม ${document.getElementById('cartTotal').innerText} บาท`,
-            showCancelButton: true,
-            confirmButtonText: 'สั่งเลย!'
+    function calculateModalTotal() {
+        let total = selectedItemTemp.price;
+        
+        // วนลูปเช็ค Topping ที่ถูกติ๊ก
+        const checkboxes = document.querySelectorAll('.topping-check:checked');
+        checkboxes.forEach(cb => {
+            const tIndex = cb.value;
+            total += selectedItemTemp.toppings[tIndex].price;
         });
 
-        if(result.isConfirmed) {
-            await db.from('orders').insert([{
-                table_no: currentTable,
-                items: cart,
-                total_price: cart.reduce((a,b)=>a+b.price, 0)
-            }]);
-            Swal.fire('สำเร็จ', 'ส่งออเดอร์เข้าครัวแล้ว', 'success');
-            cart = []; updateCart();
+        document.getElementById('modalBtnPrice').innerText = total;
+    }
+
+    function confirmAddItem() {
+        // รวบรวมข้อมูล Toppings
+        const selectedToppings = [];
+        document.querySelectorAll('.topping-check:checked').forEach(cb => {
+            const tIndex = cb.value;
+            selectedToppings.push(selectedItemTemp.toppings[tIndex]);
+        });
+
+        // สร้าง Object สินค้าตามโครงสร้างที่ Admin รองรับ
+        const cartItem = {
+            id: selectedItemTemp.id, // เก็บ ID อ้างอิง
+            name: selectedItemTemp.name,
+            price: selectedItemTemp.price,
+            selected_toppings: selectedToppings,
+            note: document.getElementById('itemNote').value,
+            qty: 1
+        };
+
+        cart.push(cartItem);
+        updateCartBar();
+        
+        // ปิด Modal
+        bootstrap.Modal.getInstance(document.getElementById('itemModal')).hide();
+        
+        // Feedback
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+        Toast.fire({ icon: 'success', title: 'เพิ่มลงตะกร้าแล้ว' });
+    }
+
+    // --- Cart & Checkout ---
+    function updateCartBar() {
+        const count = cart.length;
+        // คำนวณราคารวม (Base + Toppings)
+        const total = cart.reduce((sum, item) => {
+            let itemTotal = item.price;
+            if(item.selected_toppings) {
+                item.selected_toppings.forEach(t => itemTotal += t.price);
+            }
+            return sum + itemTotal;
+        }, 0);
+
+        document.getElementById('cartCount').innerText = count;
+        document.getElementById('cartTotal').innerText = total;
+        document.getElementById('modalCartTotal').innerText = total + " ฿";
+
+        const bar = document.getElementById('cartBar');
+        if(count > 0) bar.classList.remove('d-none');
+        else bar.classList.add('d-none');
+    }
+
+    function openCartModal() {
+        const container = document.getElementById('cartListContainer');
+        container.innerHTML = '';
+        
+        if(cart.length === 0) {
+            container.innerHTML = '<p class="text-center text-muted">ตะกร้าว่างเปล่า</p>';
+            return;
+        }
+
+        cart.forEach((item, index) => {
+            let toppingText = '';
+            let itemPriceTotal = item.price;
+
+            if(item.selected_toppings && item.selected_toppings.length > 0) {
+                item.selected_toppings.forEach(t => {
+                    toppingText += `<span class="badge bg-light text-dark border me-1">+${t.name}</span>`;
+                    itemPriceTotal += t.price;
+                });
+            }
+            
+            if(item.note) {
+                 toppingText += `<br><small class="text-danger">*${item.note}</small>`;
+            }
+
+            container.innerHTML += `
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <div class="fw-bold">${item.name}</div>
+                        <div>${toppingText}</div>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold">${itemPriceTotal} ฿</div>
+                        <button class="btn btn-sm text-danger p-0" onclick="removeFromCart(${index})">ลบ</button>
+                    </div>
+                </div>
+            `;
+        });
+
+        new bootstrap.Modal(document.getElementById('cartModal')).show();
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartBar();
+        openCartModal(); // Re-render
+        if(cart.length === 0) bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
+    }
+
+    async function submitOrder() {
+        if(cart.length === 0) return;
+
+        // คำนวณยอดรวมสุดท้ายอีกครั้งเพื่อความชัวร์
+        const total = document.getElementById('cartTotal').innerText;
+
+        const { error } = await db.from('orders').insert([{
+            table_no: currentTable,
+            items: cart, // ส่ง Array ที่มี structure แบบใหม่ไปให้ Admin
+            total_price: parseInt(total),
+            status: 'pending'
+        }]);
+
+        if(error) {
+            Swal.fire('Error', error.message, 'error');
+        } else {
+            bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
+            Swal.fire({
+                icon: 'success',
+                title: 'ส่งออเดอร์เรียบร้อย!',
+                text: 'กรุณารอสักครู่ อาหารกำลังจะมาเสิร์ฟ',
+                showConfirmButton: false,
+                timer: 2000
+            });
+            cart = [];
+            updateCartBar();
+            document.getElementById('statusBadge').innerText = "รออาหาร...";
+            document.getElementById('statusBadge').className = "badge bg-warning text-dark";
         }
     }
 
+    // --- Realtime Notification ---
     function subscribeRealtime() {
-        db.channel('customer').on('postgres_changes', 
+        db.channel('customer-updates').on('postgres_changes', 
             { event: 'UPDATE', schema: 'public', table: 'orders', filter: `table_no=eq.${currentTable}` }, 
             (payload) => {
                 if(payload.new.status === 'served') {
-                    Swal.fire('อาหารมาแล้ว!', 'ทานให้อร่อยนะครับ', 'success');
+                    Swal.fire('อาหารมาเสิร์ฟแล้ว!', 'ทานให้อร่อยนะครับ 😋', 'success');
+                    document.getElementById('statusBadge').innerText = "ได้รับอาหารแล้ว";
+                    document.getElementById('statusBadge').className = "badge bg-success";
                 }
             }
         ).subscribe();
     }
 </script>
 </body>
-
 </html>
