@@ -4,225 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <meta name="apple-mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="manifest" href="manifest.json"> <title>สั่งอาหาร - ร้านอร่อย</title>
-    </head>
-<body>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
 
-<div class="cat-scroll">
-    <button class="cat-btn active" onclick="filterMenu('all', this)">ทั้งหมด</button>
-    <button class="cat-btn" onclick="filterMenu('อาหาร', this)">อาหาร</button>
-    <button class="cat-btn" onclick="filterMenu('เครื่องดื่ม', this)">เครื่องดื่ม</button>
-    <button class="cat-btn" onclick="filterMenu('ทานเล่น', this)">ทานเล่น</button>
-</div>
-
-<div class="container mt-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold m-0">รายการเมนู</h5>
-        <span class="badge bg-secondary" id="tableDisplay">ระบุโต๊ะ...</span>
-    </div>
-    <div id="menuGrid" class="row g-3">
-        <div class="col-12 text-center mt-5">Loading...</div>
-    </div>
-</div>
-
-<div id="cartBar" class="float-cart d-none" onclick="openCartModal()">
-    <div class="d-flex align-items-center">
-        <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width:25px; height:25px;" id="cartCount">0</div>
-        <span>ดูตะกร้า</span>
-    </div>
-    <div class="fw-bold"><span id="cartTotal">0</span> ฿ ></div>
-</div>
-
-<div class="modal fade" id="optionModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-            <div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold" id="modalItemName">เลือกรูปแบบ</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body">
-                <div id="optionList" class="mb-3"></div>
-                <input type="text" id="itemNote" class="form-control" placeholder="📝 หมายเหตุ (เช่น หวานน้อย)">
-            </div>
-            <div class="modal-footer border-0 pt-0"><button class="btn btn-primary w-100 py-2 fw-bold" onclick="confirmAddItem()">เพิ่มลงตะกร้า</button></div>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="cartModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-bottom modal-fullscreen-sm-down">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title fw-bold">🛒 ตะกร้า</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body" id="cartListContainer"></div>
-            <div class="modal-footer d-block">
-                <div class="d-flex justify-content-between mb-2"><span>ยอดรวม</span><span class="fw-bold fs-4 text-primary" id="modalCartTotal">0 ฿</span></div>
-                <button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitOrder()">🚀 ยืนยันสั่งอาหาร</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // --- Config ---
-    const SUPABASE_URL = 'https://cgevinayobbjvbjdoofx.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNnZXZpbmF5b2JianZiamRvb2Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzMzgxNTAsImV4cCI6MjA4NDkxNDE1MH0.buNGHEPFeYNNhb2mSpn_Q9KrjOYu-dnxDooZ4Ogv7DI';
-    
-    let db;
-    try { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { console.error(e); }
-
-    let allMenu = [];
-    let cart = [];
-    let currentTable = null;
-    let tempItem = null;
-    let selectedOption = null;
-
-    window.onload = async () => {
-        const params = new URLSearchParams(window.location.search);
-        currentTable = params.get('table');
-        if(!currentTable) {
-            const { value } = await Swal.fire({
-                title: 'เลือกโต๊ะ', input: 'select',
-                inputOptions: {'1':'โต๊ะ 1', '2':'โต๊ะ 2', '3':'โต๊ะ 3', '4':'โต๊ะ 4', '5':'โต๊ะ 5'},
-                allowOutsideClick: false, confirmButtonText: 'ตกลง'
-            });
-            currentTable = value;
-        }
-        document.getElementById('tableDisplay').innerText = `โต๊ะ ${currentTable}`;
-        loadMenu();
-    };
-
-    async function loadMenu() {
-        const { data, error } = await db.from('menu_items').select('*').order('id');
-        if(error) { Swal.fire('Error', 'โหลดเมนูไม่ได้', 'error'); return; }
-        allMenu = data;
-        renderMenu(data);
-    }
-
-    function renderMenu(items) {
-        const grid = document.getElementById('menuGrid');
-        grid.innerHTML = '';
-        if(items.length === 0) { grid.innerHTML = '<div class="col-12 text-center text-muted">ไม่พบเมนู</div>'; return; }
-        items.forEach((m) => {
-            const img = m.image_url || 'https://via.placeholder.com/150';
-            grid.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="menu-card" onclick="prepareAddItem(${m.id})">
-                        <img src="${img}" class="menu-img">
-                        <div class="p-3 d-flex flex-column flex-grow-1">
-                            <h6 class="fw-bold mb-1 text-truncate">${m.name}</h6>
-                            <div class="mt-auto d-flex justify-content-between align-items-center">
-                                <span class="text-primary fw-bold">${m.price}.-</span>
-                                <button class="btn btn-sm btn-warning rounded-circle" style="width:30px;height:30px;">+</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-        });
-    }
-
-    function filterMenu(cat, btn) {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if(cat === 'all') renderMenu(allMenu);
-        else renderMenu(allMenu.filter(m => m.category === cat));
-    }
-
-    function prepareAddItem(id) {
-        tempItem = allMenu.find(m => m.id === id);
-        selectedOption = null;
-        document.getElementById('itemNote').value = '';
-        if (tempItem.options && Array.isArray(tempItem.options) && tempItem.options.length > 0) {
-            document.getElementById('modalItemName').innerText = tempItem.name;
-            const list = document.getElementById('optionList');
-            list.innerHTML = '';
-            selectedOption = tempItem.options[0]; 
-            tempItem.options.forEach((opt, idx) => {
-                list.innerHTML += `<button class="opt-btn ${idx===0?'active':''}" onclick="selectOpt(this, ${idx})"><span>${opt.name}</span><span>${opt.price>0?'+'+opt.price:''}</span></button>`;
-            });
-            new bootstrap.Modal(document.getElementById('optionModal')).show();
-        } else {
-            addToCart(tempItem, null, '');
-        }
-    }
-
-    function selectOpt(btn, idx) {
-        document.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        selectedOption = tempItem.options[idx];
-    }
-
-    function confirmAddItem() {
-        addToCart(tempItem, selectedOption, document.getElementById('itemNote').value);
-        bootstrap.Modal.getInstance(document.getElementById('optionModal')).hide();
-    }
-
-    function addToCart(item, opt, note) {
-        const price = item.price + (opt ? opt.price : 0);
-        cart.push({ id: item.id, name: item.name, price: price, option: opt?opt.name:'', note: note, qty: 1 });
-        updateCartUI();
-    }
-
-    function updateCartUI() {
-        const count = cart.length;
-        const total = cart.reduce((sum, i) => sum + i.price, 0);
-        document.getElementById('cartCount').innerText = count;
-        document.getElementById('cartTotal').innerText = total;
-        document.getElementById('modalCartTotal').innerText = total + " ฿";
-        const bar = document.getElementById('cartBar');
-        if(count > 0) bar.classList.remove('d-none'); else bar.classList.add('d-none');
-    }
-
-    function openCartModal() {
-        const list = document.getElementById('cartListContainer');
-        list.innerHTML = '';
-        cart.forEach((item, idx) => {
-            list.innerHTML += `
-                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
-                    <div><div class="fw-bold">${item.name} <small class="text-primary">${item.option}</small></div><small class="text-muted">${item.note}</small></div>
-                    <div class="text-end"><div class="fw-bold">${item.price}</div><button class="btn btn-sm text-danger p-0" onclick="removeFromCart(${idx})">ลบ</button></div>
-                </div>`;
-        });
-        new bootstrap.Modal(document.getElementById('cartModal')).show();
-    }
-
-    function removeFromCart(idx) {
-        cart.splice(idx, 1);
-        updateCartUI();
-        openCartModal();
-        if(cart.length===0) bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
-    }
-
-    async function submitOrder() {
-        if(cart.length === 0) return;
-        Swal.fire({ title: 'กำลังส่ง...', didOpen: () => Swal.showLoading() });
-
-        // Smart Merge Logic
-        const { data: existing } = await db.from('orders').select('*').eq('table_no', currentTable).neq('status', 'paid').maybeSingle();
-        
-        let err;
-        if (existing) {
-            const newItems = [...existing.items, ...cart];
-            const newTotal = existing.total_price + parseInt(document.getElementById('cartTotal').innerText);
-            const res = await db.from('orders').update({ items: newItems, total_price: newTotal, status: 'pending' }).eq('id', existing.id);
-            err = res.error;
-        } else {
-            const res = await db.from('orders').insert([{ table_no: currentTable, items: cart, total_price: parseInt(document.getElementById('cartTotal').innerText), status: 'pending' }]);
-            err = res.error;
-        }
-
-        if(err) Swal.fire('Error', err.message, 'error');
-        else {
-            Swal.fire('สำเร็จ', 'ส่งออเดอร์แล้ว', 'success');
-            cart = []; updateCartUI();
-            bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
-        }
-    }
-</script>
-</body>
-</html><!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>สั่งอาหาร - ร้านอร่อย</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -308,9 +95,24 @@
     let tempItem = null;
     let selectedOption = null;
 
+    // --- Logic: Handle Table & Clean URL ---
     window.onload = async () => {
         const params = new URLSearchParams(window.location.search);
-        currentTable = params.get('table');
+        let tableFromUrl = params.get('table');
+
+        // 1. ถ้ามีเลขโต๊ะในลิงก์
+        if (tableFromUrl) {
+            currentTable = tableFromUrl;
+            localStorage.setItem('my_table', currentTable);
+            // ล้าง URL ให้สะอาด (ลบ ?table=...)
+            window.history.replaceState({}, document.title, "/"); 
+        } 
+        // 2. ถ้าไม่มีในลิงก์ ให้ดูในเครื่อง
+        else {
+            currentTable = localStorage.getItem('my_table');
+        }
+
+        // 3. ถ้ายังไม่มีเลย ให้ถาม
         if(!currentTable) {
             const { value } = await Swal.fire({
                 title: 'เลือกโต๊ะ', input: 'select',
@@ -318,7 +120,9 @@
                 allowOutsideClick: false, confirmButtonText: 'ตกลง'
             });
             currentTable = value;
+            localStorage.setItem('my_table', currentTable);
         }
+
         document.getElementById('tableDisplay').innerText = `โต๊ะ ${currentTable}`;
         loadMenu();
     };
@@ -428,7 +232,6 @@
         if(cart.length === 0) return;
         Swal.fire({ title: 'กำลังส่ง...', didOpen: () => Swal.showLoading() });
 
-        // Smart Merge Logic
         const { data: existing } = await db.from('orders').select('*').eq('table_no', currentTable).neq('status', 'paid').maybeSingle();
         
         let err;
@@ -452,5 +255,3 @@
 </script>
 </body>
 </html>
-
-
