@@ -3,237 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>สั่งอาหารออนไลน์</title>
+    <title>สั่งอาหาร</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-    
     <style>
-        :root {
-            --primary: #FF6B6B;
-            --secondary: #4ECDC4;
-            --dark: #2D3436;
-            --bg-gradient: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-        }
-        body {
-            font-family: 'Kanit', sans-serif;
-            background: var(--bg-gradient);
-            margin: 0; padding-bottom: 100px; color: var(--dark);
-        }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        
-        /* Header Glassmorphism */
-        .glass-header {
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            border-radius: 20px; padding: 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
-            position: sticky; top: 10px; z-index: 100;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-        }
-
-        /* Filter Tabs */
-        .category-scroll {
-            display: flex; gap: 10px; overflow-x: auto; 
-            padding: 15px 0; scrollbar-width: none;
-        }
-        .cat-btn {
-            background: white; border: none; padding: 8px 16px;
-            border-radius: 20px; white-space: nowrap;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            transition: 0.3s; cursor: pointer; color: #888;
-        }
-        .cat-btn.active { background: var(--primary); color: white; font-weight: bold; transform: scale(1.05); }
-
-        /* Menu Grid */
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
-        .menu-card {
-            background: white; border-radius: 15px; overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            transition: 0.2s; position: relative;
-        }
-        .menu-card:active { transform: scale(0.95); }
-        .menu-img { width: 100%; height: 120px; object-fit: cover; }
-        .menu-content { padding: 12px; }
-        .price-tag {
-            position: absolute; top: 10px; right: 10px;
-            background: rgba(0,0,0,0.7); color: white;
-            padding: 4px 10px; border-radius: 12px; font-size: 0.9rem;
-        }
-        .add-btn {
-            width: 100%; background: var(--secondary); color: white;
-            border: none; padding: 8px; border-radius: 8px;
-            margin-top: 8px; cursor: pointer; font-weight: bold;
-        }
-
-        /* Floating Cart */
-        .float-cart {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            width: 90%; max-width: 400px;
-            background: var(--dark); color: white;
-            padding: 15px 25px; border-radius: 50px;
-            display: flex; justify-content: space-between; align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            cursor: pointer; z-index: 999;
-        }
-        .hidden { display: none !important; }
+        body { font-family: 'Kanit', sans-serif; background: #f8f9fa; padding-bottom: 80px; }
+        .header { background: white; padding: 15px; position: sticky; top: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.05); z-index: 100; display:flex; justify-content:space-between; align-items:center; }
+        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; }
+        .menu-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .menu-img { width: 100%; height: 120px; object-fit: cover; background: #eee; }
+        .cart-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2c3e50; color: white; padding: 15px 30px; border-radius: 50px; width: 90%; max-width: 400px; display: flex; justify-content: space-between; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .add-btn { width: 100%; background: #ffc107; border: none; padding: 5px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="glass-header">
-        <div>
-            <span style="font-size:0.8rem; color:#888;">โต๊ะที่</span>
-            <h1 style="margin:0; line-height:1; color:var(--primary);" id="tableDisplay">--</h1>
-        </div>
-        <div style="text-align:right;">
-            <div id="statusText" style="font-size:0.9rem; font-weight:bold; color:var(--secondary);">พร้อมสั่งอาหาร</div>
-        </div>
-    </div>
-
-    <div class="category-scroll" id="catFilters">
-        <button class="cat-btn active" onclick="filterMenu('all', this)">ทั้งหมด</button>
-        <button class="cat-btn" onclick="filterMenu('จานหลัก', this)">จานหลัก</button>
-        <button class="cat-btn" onclick="filterMenu('กับข้าว', this)">กับข้าว</button>
-        <button class="cat-btn" onclick="filterMenu('เครื่องดื่ม', this)">เครื่องดื่ม</button>
-    </div>
-
-    <div id="menuContainer" class="menu-grid">Loading...</div>
+<div class="header">
+    <h2 style="margin:0; color:#e67e22;">🍽️ ร้านอร่อย</h2>
+    <span id="tableDisplay" class="badge bg-secondary" style="background:#ddd; padding:5px 10px; border-radius:10px;">โต๊ะ ...</span>
 </div>
 
-<div id="cartBar" class="float-cart hidden animate__animated animate__fadeInUp" onclick="confirmOrder()">
-    <div style="font-size:1.1rem;">🛒 <span id="cartCount">0</span> รายการ</div>
-    <div style="font-weight:bold; font-size:1.2rem;">฿<span id="cartTotal">0</span> ></div>
+<div id="menuContainer" class="menu-grid">Loading...</div>
+
+<div id="cartBar" class="cart-bar" style="display:none;" onclick="checkout()">
+    <span>🛒 <b id="cartCount">0</b> รายการ</span>
+    <span><b id="cartTotal">0</b> ฿ ></span>
 </div>
 
 <script>
-    // --- ตั้งค่า Supabase (ใส่ Key ของคุณที่นี่) ---
+    // Config ชุดเดียวกัน
     const SUPABASE_URL = 'https://mernrqwxfblbsxsbnqcw.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lcm5ycXd4ZmJsYnN4c2JucWN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzMTU2MzQsImV4cCI6MjA4NDg5MTYzNH0.DQfS2jjYw2dBd6ZazWA902BQ6_PXUDkxaYHUD2qcVSM';
     const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentTable = null;
-    let menuData = [];
     let cart = [];
+    let currentTable = null;
 
-    // --- เริ่มต้นทำงาน ---
     window.onload = async () => {
-        // 1. เช็คเลขโต๊ะจาก URL (QR Code)
-        const urlParams = new URLSearchParams(window.location.search);
-        let table = urlParams.get('table');
-
-        // 2. ถ้าไม่มีใน URL ให้เด้งถาม
-        if (!table) {
-            const result = await Swal.fire({
-                title: 'ยินดีต้อนรับ! 🍽️',
-                text: 'กรุณาเลือกโต๊ะของคุณ',
+        // เช็กเลขโต๊ะ
+        const params = new URLSearchParams(window.location.search);
+        currentTable = params.get('table');
+        
+        if(!currentTable) {
+            const { value } = await Swal.fire({
+                title: 'เลือกโต๊ะ',
                 input: 'select',
-                inputOptions: { '1': 'โต๊ะ 1', '2': 'โต๊ะ 2', '3': 'โต๊ะ 3', '4': 'โต๊ะ 4', '5': 'โต๊ะ 5' },
-                allowOutsideClick: false,
-                confirmButtonColor: '#FF6B6B',
-                confirmButtonText: 'เข้าร้าน'
+                inputOptions: { '1': 'โต๊ะ 1', '2': 'โต๊ะ 2', '3': 'โต๊ะ 3' },
+                allowOutsideClick: false
             });
-            table = result.value;
+            currentTable = value;
         }
-
-        if (table) {
-            currentTable = table;
-            document.getElementById('tableDisplay').innerText = table;
-            fetchMenu();
-            subscribeOrder();
-        }
+        document.getElementById('tableDisplay').innerText = `โต๊ะ ${currentTable}`;
+        
+        loadMenu();
+        subscribeRealtime();
     };
 
-    // --- ดึงเมนู ---
-    async function fetchMenu() {
-        const { data } = await db.from('menu_items').select('*').eq('is_available', true);
-        menuData = data;
-        renderMenu(data);
-    }
-
-    function renderMenu(items) {
-        const container = document.getElementById('menuContainer');
-        container.innerHTML = '';
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'menu-card animate__animated animate__fadeIn';
-            div.innerHTML = `
-                <img src="${item.image_url}" class="menu-img">
-                <div class="price-tag">${item.price}.-</div>
-                <div class="menu-content">
-                    <div style="font-weight:bold; margin-bottom:5px;">${item.name}</div>
-                    <button onclick="addToCart(${item.id})" class="add-btn">ใส่ตะกร้า +</button>
-                </div>
-            `;
-            container.appendChild(div);
+    async function loadMenu() {
+        const { data, error } = await db.from('menu_items').select('*').eq('is_available', true);
+        if(error) return alert("โหลดเมนูไม่สำเร็จ");
+        
+        const div = document.getElementById('menuContainer');
+        div.innerHTML = '';
+        data.forEach(m => {
+            div.innerHTML += `
+                <div class="menu-card">
+                    <img src="${m.image_url}" class="menu-img">
+                    <div style="padding:10px;">
+                        <div style="font-weight:bold;">${m.name}</div>
+                        <div style="color:#e67e22;">${m.price} ฿</div>
+                        <button class="add-btn mt-2" onclick="addToCart('${m.name}', ${m.price})">ใส่ตะกร้า +</button>
+                    </div>
+                </div>`;
         });
     }
 
-    function filterMenu(cat, btn) {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if(cat === 'all') renderMenu(menuData);
-        else renderMenu(menuData.filter(i => i.category === cat));
+    function addToCart(name, price) {
+        cart.push({name, price});
+        updateCart();
     }
 
-    // --- ตะกร้าสินค้า ---
-    function addToCart(id) {
-        const item = menuData.find(i => i.id === id);
-        cart.push(item);
-        updateCartUI();
-        
-        // Haptic Feedback (สั่นเบาๆ)
-        if(navigator.vibrate) navigator.vibrate(50);
-    }
-
-    function updateCartUI() {
-        const total = cart.reduce((sum, i) => sum + i.price, 0);
+    function updateCart() {
         document.getElementById('cartCount').innerText = cart.length;
-        document.getElementById('cartTotal').innerText = total;
-        
-        const bar = document.getElementById('cartBar');
-        if(cart.length > 0) bar.classList.remove('hidden');
-        else bar.classList.add('hidden');
+        document.getElementById('cartTotal').innerText = cart.reduce((a,b)=>a+b.price, 0);
+        document.getElementById('cartBar').style.display = cart.length ? 'flex' : 'none';
     }
 
-    // --- สั่งอาหาร ---
-    async function confirmOrder() {
+    async function checkout() {
         const result = await Swal.fire({
-            title: 'ยืนยันออเดอร์?',
-            html: `รายการ ${cart.length} อย่าง<br>รวม <b>${document.getElementById('cartTotal').innerText}</b> บาท`,
+            title: 'ยืนยันสั่งอาหาร?',
+            text: `รวม ${document.getElementById('cartTotal').innerText} บาท`,
             showCancelButton: true,
-            confirmButtonText: 'สั่งเลย! 🚀',
-            confirmButtonColor: '#4ECDC4'
+            confirmButtonText: 'สั่งเลย!'
         });
 
-        if (result.isConfirmed) {
-            const { error } = await db.from('orders').insert([{
+        if(result.isConfirmed) {
+            await db.from('orders').insert([{
                 table_no: currentTable,
                 items: cart,
-                total_price: cart.reduce((s,i)=>s+i.price,0),
-                status: 'pending'
+                total_price: cart.reduce((a,b)=>a+b.price, 0)
             }]);
-
-            if(!error) {
-                Swal.fire('สำเร็จ', 'ส่งออเดอร์เข้าครัวแล้ว', 'success');
-                cart = []; updateCartUI();
-                document.getElementById('statusText').innerText = 'รออาหารมาเสิร์ฟ... 🕒';
-            }
+            Swal.fire('สำเร็จ', 'ส่งออเดอร์เข้าครัวแล้ว', 'success');
+            cart = []; updateCart();
         }
     }
 
-    // --- รับแจ้งเตือนเมื่ออาหารเสร็จ ---
-    function subscribeOrder() {
-        db.channel('customer-realtime')
-        .on('postgres_changes', 
+    function subscribeRealtime() {
+        db.channel('customer').on('postgres_changes', 
             { event: 'UPDATE', schema: 'public', table: 'orders', filter: `table_no=eq.${currentTable}` }, 
             (payload) => {
                 if(payload.new.status === 'served') {
-                    Swal.fire('อาหารมาแล้ว!', 'ขอให้อร่อยนะครับ 😋', 'success');
-                    document.getElementById('statusText').innerText = 'อาหารเสิร์ฟแล้ว ✅';
+                    Swal.fire('อาหารมาแล้ว!', 'ทานให้อร่อยนะครับ', 'success');
                 }
             }
         ).subscribe();
