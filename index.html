@@ -26,11 +26,10 @@
         .float-cart { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; background: #212529; color: white; padding: 15px 25px; border-radius: 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); cursor: pointer; z-index: 1000; transition: all 0.3s; }
         .float-cart:active { transform: translateX(-50%) scale(0.95); }
         
-        /* CSS ปุ่มตัวเลือกแบบใหม่ (Checkbox Style) */
+        /* CSS ปุ่มตัวเลือก */
         .opt-btn { width: 100%; margin-bottom: 8px; border: 1px solid #eee; text-align: left; padding: 10px; border-radius: 10px; background: white; display: flex; justify-content: space-between; position: relative; }
         .opt-btn.active { border-color: #0d6efd; background: #f0f7ff; color: #0d6efd; font-weight: bold; }
         .opt-btn.active::after { content: '\f00c'; font-family: 'Font Awesome 5 Free'; font-weight: 900; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #0d6efd; }
-        /* ซ่อนราคาถ้าเลือกแล้วเพื่อให้ติ๊กถูกเด่นขึ้น หรือจะโชว์คู่ก็ได้ (ในที่นี้โชว์คู่โดยขยับราคาไปซ้ายหน่อย) */
         .opt-price { margin-right: 20px; color: #666; }
         .opt-btn.active .opt-price { color: #0d6efd; }
     </style>
@@ -72,13 +71,16 @@
 
 <div class="modal fade" id="optionModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="modalItemName">เลือกรูปแบบ</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-content border-0 overflow-hidden">
+            <div class="modal-header border-0 p-0 position-relative">
+                <img id="modalItemImg" src="" style="width: 100%; height: 200px; object-fit: cover;">
+                <button type="button" class="btn-close bg-white p-2 m-2 position-absolute top-0 end-0 rounded-circle opacity-100 shadow-sm" data-bs-dismiss="modal"></button>
+                <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);">
+                    <h4 class="modal-title fw-bold text-white mb-0" id="modalItemName">ชื่อเมนู</h4>
+                </div>
             </div>
             <div class="modal-body">
-                <p class="text-muted small mb-2">เลือกตัวเลือกเสริม (เลือกได้หลายข้อ)</p>
+                <p class="text-muted small mb-2"><i class="fas fa-sliders-h"></i> เลือกตัวเลือกเสริม (เลือกได้หลายข้อ)</p>
                 <div id="optionList" class="mb-3"></div>
                 <input type="text" id="itemNote" class="form-control" placeholder="📝 หมายเหตุ (เช่น หวานน้อย)">
             </div>
@@ -121,7 +123,7 @@
     let cart = [];
     let currentTable = null;
     let tempItem = null;
-    let selectedOptions = []; // เปลี่ยนจาก single object เป็น array
+    let selectedOptions = [];
 
     window.onload = async () => {
         const params = new URLSearchParams(window.location.search);
@@ -191,22 +193,24 @@
         else renderMenu(allMenu.filter(m => m.category === cat));
     }
 
-    // --- ส่วนที่แก้ไข: ระบบ Multi-Select Options ---
+    // --- ส่วนที่แก้ไข: Modal Show Image & Cart Image ---
 
     function prepareAddItem(id) {
         tempItem = allMenu.find(m => m.id === id);
-        selectedOptions = []; // รีเซ็ตตัวเลือก
+        selectedOptions = []; 
         document.getElementById('itemNote').value = '';
         
-        // อัปเดตราคาปุ่มเพิ่ม (เริ่มต้นเท่าราคาเมนู)
+        // 1. Set Image & Name in Modal
+        document.getElementById('modalItemName').innerText = tempItem.name;
+        const imgEl = document.getElementById('modalItemImg');
+        imgEl.src = tempItem.image_url || 'https://via.placeholder.com/300?text=No+Image';
+
         updateModalPrice();
 
+        const list = document.getElementById('optionList');
+        list.innerHTML = '';
+
         if (tempItem.options && Array.isArray(tempItem.options) && tempItem.options.length > 0) {
-            document.getElementById('modalItemName').innerText = tempItem.name;
-            const list = document.getElementById('optionList');
-            list.innerHTML = '';
-            
-            // สร้างปุ่มตัวเลือกแบบติ๊กถูก (ไม่เลือก Default, ให้เริ่มแบบว่างเปล่า = ธรรมดา)
             tempItem.options.forEach((opt, idx) => {
                 list.innerHTML += `
                 <div class="opt-btn" onclick="toggleOpt(this, ${idx})">
@@ -216,23 +220,20 @@
             });
             new bootstrap.Modal(document.getElementById('optionModal')).show();
         } else {
-            // ไม่มีตัวเลือก ใส่ตะกร้าเลย (เป็นธรรมดา)
-            addToCart(tempItem, [], '');
+            // ถ้าไม่มีตัวเลือก ก็เด้ง Pop up ให้ดูรูปสวยๆ ก่อน หรือจะกดเพิ่มเลยก็ได้
+            // เพื่อความสวยงาม ให้เด้ง Modal โชว์รูปด้วยดีกว่า
+            list.innerHTML = '<div class="text-center text-muted py-2">- ไม่มีตัวเลือกเสริม -</div>';
+            new bootstrap.Modal(document.getElementById('optionModal')).show();
         }
     }
 
     function toggleOpt(btn, idx) {
         const opt = tempItem.options[idx];
-        
-        // ตรวจสอบว่าเลือกอยู่ไหม
         const index = selectedOptions.findIndex(o => o.name === opt.name);
-        
         if (index > -1) {
-            // ถ้ามีอยู่แล้ว -> เอาออก (Unselect)
             selectedOptions.splice(index, 1);
             btn.classList.remove('active');
         } else {
-            // ถ้ายังไม่มี -> ใส่เพิ่ม (Select)
             selectedOptions.push(opt);
             btn.classList.add('active');
         }
@@ -250,16 +251,12 @@
     }
 
     function addToCart(item, options, note) {
-        // คำนวณราคารวม
         const optionsPrice = options.reduce((sum, opt) => sum + opt.price, 0);
         const finalPrice = item.price + optionsPrice;
         
-        // สร้างข้อความตัวเลือก (Logic: ถ้ามีตัวเลือก ให้แสดงตัวเลือก / ถ้าไม่มี ให้เป็น "ธรรมดา")
-        // แต่จริงๆ แค่ไม่ส่ง text ไป UI ก็จะว่างเปล่า ซึ่งเข้าใจได้ว่าเป็นธรรมดา
-        // หรือจะบังคับใส่คำว่า "ธรรมดา" ก็ได้ถ้า options.length === 0
         let optionString = '';
         if (options.length > 0) {
-            optionString = options.map(o => o.name).join(', '); // เช่น "พิเศษ, ไข่ดาว"
+            optionString = options.map(o => o.name).join(', '); 
         } else {
             optionString = 'ธรรมดา'; 
         }
@@ -270,6 +267,7 @@
             price: finalPrice, 
             option: optionString, 
             note: note, 
+            image: item.image_url, // บันทึกรูปภาพลงตะกร้าด้วย
             qty: 1 
         });
         
@@ -277,8 +275,6 @@
         const Toast = Swal.mixin({ toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
         Toast.fire({ icon: 'success', title: 'เพิ่มลงตะกร้าแล้ว' });
     }
-
-    // --- จบส่วนแก้ไข ---
 
     function updateCartUI() {
         const count = cart.length;
@@ -294,13 +290,19 @@
         const list = document.getElementById('cartListContainer');
         list.innerHTML = '';
         if (cart.length === 0) { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); return; }
+        
         cart.forEach((item, idx) => {
+            // ใช้รูปภาพแทนตัวเลข
+            const imgHtml = item.image 
+                ? `<img src="${item.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">`
+                : `<div class="bg-light rounded d-flex align-items-center justify-content-center text-muted" style="width:50px;height:50px;"><i class="fas fa-utensils"></i></div>`;
+
             list.innerHTML += `
                 <div class="list-group-item d-flex justify-content-between align-items-center py-3">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center text-muted fw-bold" style="width:30px;height:30px;font-size:0.8rem;">${idx+1}</div>
+                        ${imgHtml}
                         <div>
-                            <div class="fw-bold">${item.name} <small class="text-primary">${item.option}</small></div>
+                            <div class="fw-bold">${item.name} <small class="text-primary">(${item.option})</small></div>
                             <div class="small text-muted">${item.note ? '📝 '+item.note : ''}</div>
                             <div class="fw-bold text-primary">${item.price} ฿</div>
                         </div>
