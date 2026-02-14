@@ -2,379 +2,103 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>สั่งอาหาร - บ้านไม้คาเฟ่</title>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สั่งอาหาร</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <style>
-        body { font-family: 'Prompt', sans-serif; background: #f8f9fa; padding-bottom: 100px; -webkit-tap-highlight-color: transparent; }
-        .cat-scroll { display: flex; overflow-x: auto; padding: 15px; gap: 10px; background: white; position: sticky; top: 0; z-index: 90; box-shadow: 0 2px 5px rgba(0,0,0,0.05); -ms-overflow-style: none; scrollbar-width: none; }
-        .cat-scroll::-webkit-scrollbar { display: none; }
-        .cat-btn { white-space: nowrap; border: 1px solid #ddd; padding: 8px 20px; border-radius: 20px; background: white; color: #666; transition: 0.2s; }
-        .cat-btn.active { background: #0d6efd; color: white; border-color: #0d6efd; font-weight: bold; transform: scale(1.05); }
-        .menu-card { background: white; border-radius: 12px; overflow: hidden; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.03); height: 100%; display: flex; flex-direction: column; transition: transform 0.1s; cursor: pointer; }
-        .menu-card:active { transform: scale(0.98); }
-        .menu-img { height: 140px; object-fit: cover; width: 100%; background: #eee; }
-        .float-cart { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; background: #212529; color: white; padding: 15px 25px; border-radius: 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); cursor: pointer; z-index: 1000; transition: all 0.3s; }
-        .float-cart:active { transform: translateX(-50%) scale(0.95); }
-        .opt-btn { width: 100%; margin-bottom: 8px; border: 1px solid #eee; text-align: left; padding: 10px; border-radius: 10px; background: white; display: flex; justify-content: space-between; position: relative; }
-        .opt-btn.active { border-color: #0d6efd; background: #f0f7ff; color: #0d6efd; font-weight: bold; }
-        .opt-btn.active::after { content: '\f00c'; font-family: 'Font Awesome 5 Free'; font-weight: 900; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #0d6efd; }
-        .opt-price { margin-right: 20px; color: #666; }
-        .opt-btn.active .opt-price { color: #0d6efd; }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style> .menu-img { height: 150px; object-fit: cover; width: 100%; } </style>
 </head>
 <body>
-
-<div class="cat-scroll">
-    <button class="cat-btn active" onclick="filterMenu('all', this)">ทั้งหมด</button>
-    <button class="cat-btn" onclick="filterMenu('สเต็ก', this)">🥩 สเต็ก</button>
-    <button class="cat-btn" onclick="filterMenu('เบอร์เกอร์', this)">🍔 เบอร์เกอร์</button>
-    <button class="cat-btn" onclick="filterMenu('อาหารจานเดี่ยว', this)">🍛 อาหารจานเดี่ยว</button>
-    <button class="cat-btn" onclick="filterMenu('ของทานเล่น', this)">🍟 ทานเล่น</button>
-    <button class="cat-btn" onclick="filterMenu('ของหวาน', this)">🍰 ของหวาน</button>
-    <button class="cat-btn" onclick="filterMenu('เครื่องดื่ม', this)">🥤 เครื่องดื่ม</button>
-    <button class="cat-btn" onclick="filterMenu('กาแฟ', this)">☕ กาแฟ</button>
-    <button class="cat-btn" onclick="filterMenu('อื่นๆ', this)">✨ อื่นๆ</button>
-</div>
-
-<div class="container mt-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="fw-bold m-0">รายการเมนู</h5>
-        <span class="badge bg-secondary" id="tableDisplay">ระบุโต๊ะ...</span>
-    </div>
-    <div id="menuGrid" class="row g-3">
-        <div class="col-12 text-center mt-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2 text-muted">กำลังโหลดเมนู...</div>
+    <div class="container py-3">
+        <h3 class="text-center mb-4">🍽️ เมนูอาหาร</h3>
+        
+        <div class="input-group mb-3">
+            <span class="input-group-text">เบอร์โต๊ะ</span>
+            <select id="tableNo" class="form-select">
+                <option value="1">โต๊ะ 1</option><option value="2">โต๊ะ 2</option>
+                <option value="3">โต๊ะ 3</option><option value="4">โต๊ะ 4</option>
+            </select>
         </div>
-    </div>
-</div>
 
-<div id="cartBar" class="float-cart d-none" onclick="openCartModal()">
-    <div class="d-flex align-items-center">
-        <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width:25px; height:25px;" id="cartCount">0</div>
-        <span>ดูตะกร้า</span>
-    </div>
-    <div class="fw-bold"><span id="cartTotal">0</span> ฿ ></div>
-</div>
-
-<div class="modal fade" id="optionModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 overflow-hidden">
-            <div class="modal-header border-0 p-0 position-relative">
-                <img id="modalItemImg" src="" style="width: 100%; height: 200px; object-fit: cover;">
-                <button type="button" class="btn-close bg-white p-2 m-2 position-absolute top-0 end-0 rounded-circle opacity-100 shadow-sm" data-bs-dismiss="modal"></button>
-                <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);">
-                    <h4 class="modal-title fw-bold text-white mb-0" id="modalItemName">ชื่อเมนู</h4>
-                </div>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small mb-2"><i class="fas fa-sliders-h"></i> ตัวเลือกเสริม</p>
-                <div id="optionList" class="mb-3"></div>
-                <input type="text" id="itemNote" class="form-control" placeholder="📝 หมายเหตุ (เช่น หวานน้อย)">
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button class="btn btn-primary w-100 py-2 fw-bold" onclick="confirmAddItem()">
-                    เพิ่มลงตะกร้า (<span id="btnTotalPrice">0</span> ฿)
-                </button>
-            </div>
+        <div class="row" id="menu-list">
+            <p class="text-center">กำลังโหลดเมนู...</p>
         </div>
-    </div>
-</div>
 
-<div class="modal fade" id="cartModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-bottom modal-fullscreen-sm-down">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="fas fa-shopping-basket"></i> ตะกร้าสินค้า</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body p-0">
-                <div id="cartListContainer" class="list-group list-group-flush"></div>
-            </div>
-            <div class="modal-footer d-block bg-light">
-                <div class="d-flex justify-content-between mb-2"><span>ยอดรวม</span><span class="fw-bold fs-4 text-primary" id="modalCartTotal">0 ฿</span></div>
-                <button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitOrder()">🚀 ยืนยันสั่งอาหาร</button>
-            </div>
-        </div>
+        <nav class="navbar fixed-bottom navbar-light bg-light border-top p-3">
+            <button class="btn btn-primary w-100 p-2" onclick="showCart()">
+                🛒 ตะกร้าสินค้า (<span id="cart-count">0</span>)
+            </button>
+        </nav>
     </div>
-</div>
 
 <script>
-    // --- Config Google Apps Script ---
-    // !!! ใส่ URL Web App ล่าสุดของคุณที่นี่ !!!
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxP--026ajqh2m49mN0b8EKJzz58cEyY1QQl3REE7rSXBfC874iFWsdi_kAFdNxAN0t/exec'; 
-
-    let allMenu = [];
+    // 🔴 แก้ไข URL ตรงนี้ เป็น URL เดียวกันกับหน้า Admin
+    const API_URL = 'https://script.google.com/macros/s/xxxxxxxxx/exec'; 
     let cart = [];
-    let currentTable = null;
-    let tempItem = null;
-    let selectedOptions = [];
+    let menuData = [];
 
-    window.onload = async () => {
-        const params = new URLSearchParams(window.location.search);
-        let tableFromUrl = params.get('table');
-        
-        // จัดการเลขโต๊ะ
-        if (tableFromUrl) {
-            currentTable = tableFromUrl;
-            localStorage.setItem('my_table', currentTable);
-            window.history.replaceState({}, document.title, window.location.pathname); 
-        } else {
-            currentTable = localStorage.getItem('my_table');
-        }
-
-        if(!currentTable) {
-            const { value } = await Swal.fire({
-                title: 'เลือกโต๊ะ', input: 'select',
-                inputOptions: {'1':'โต๊ะ 1', '2':'โต๊ะ 2', '3':'โต๊ะ 3', '4':'โต๊ะ 4', '5':'โต๊ะ 5'},
-                allowOutsideClick: false, confirmButtonText: 'ตกลง'
-            });
-            currentTable = value;
-            localStorage.setItem('my_table', currentTable);
-        }
-        document.getElementById('tableDisplay').innerText = `โต๊ะ ${currentTable}`;
-        loadMenu();
-    };
-
-    // --- โหลดเมนูจาก Google Sheets ---
-    async function loadMenu() {
-        try {
-            const response = await fetch(SCRIPT_URL + '?action=getMenu');
-            const data = await response.json();
-            
-            if(data.error) {
-                Swal.fire('Error', 'โหลดเมนูไม่ได้: ' + data.error, 'error');
-                return;
-            }
-
-            allMenu = data;
-            renderMenu(data);
-
-        } catch (error) {
-            console.error(error);
-            Swal.fire('Error', 'เชื่อมต่อระบบไม่ได้', 'error');
-        }
+    async function init() {
+        const res = await fetch(API_URL + '?action=getMenu');
+        menuData = await res.json();
+        renderMenu();
     }
 
-    function renderMenu(items) {
-        const grid = document.getElementById('menuGrid');
-        grid.innerHTML = '';
-        
-        if(!items || items.length === 0) { 
-            grid.innerHTML = '<div class="col-12 text-center text-muted py-5">ยังไม่มีรายการในหมวดนี้</div>'; 
-            return; 
-        }
-
-        items.forEach((m) => {
-            const img = m.image_url || 'https://via.placeholder.com/150?text=No+Image';
-            // แปลงค่า is_available ให้เป็น boolean (บางที Sheet ส่งมาเป็น string)
-            const isSoldOut = (m.is_available === false || m.is_available === "FALSE");
-            
-            const opacityClass = isSoldOut ? 'opacity-50' : '';
-            const action = isSoldOut ? `Swal.fire('ขออภัย', 'สินค้านี้หมดค่ะ', 'warning')` : `prepareAddItem(${m.id})`;
-            const btnColor = isSoldOut ? 'btn-secondary' : 'btn-warning';
-
-            grid.innerHTML += `
-                <div class="col-6 col-md-4 col-lg-3">
-                    <div class="menu-card ${opacityClass}" onclick="${action}">
-                        <div style="position:relative;">
-                            <img src="${img}" class="menu-img">
-                            ${isSoldOut ? '<span class="badge bg-danger position-absolute top-0 end-0 m-2">หมด</span>' : ''}
-                        </div>
-                        <div class="p-3 d-flex flex-column flex-grow-1">
-                            <h6 class="fw-bold mb-1 text-truncate">${m.name}</h6>
-                            <div class="mt-auto d-flex justify-content-between align-items-center">
-                                <span class="text-primary fw-bold">${m.price}.-</span>
-                                <button class="btn btn-sm ${btnColor} rounded-circle" style="width:30px;height:30px;"><i class="fas fa-plus"></i></button>
-                            </div>
-                        </div>
+    function renderMenu() {
+        const div = document.getElementById('menu-list');
+        div.innerHTML = menuData.map(m => `
+            <div class="col-6 col-md-4 mb-3">
+                <div class="card h-100 shadow-sm border-0">
+                    <img src="${m.image_url}" class="card-img-top menu-img" onerror="this.src='https://placehold.co/400'">
+                    <div class="card-body p-2 text-center">
+                        <h6 class="card-title">${m.name}</h6>
+                        <p class="text-danger fw-bold">${m.price} บาท</p>
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="addToCart('${m.id}')">+ เพิ่ม</button>
                     </div>
-                </div>`;
+                </div>
+            </div>`).join('');
+    }
+
+    function addToCart(id) {
+        const item = menuData.find(m => m.id == id);
+        const existing = cart.find(c => c.id == id);
+        if(existing) existing.qty++;
+        else cart.push({...item, qty:1});
+        updateCartBtn();
+        Swal.fire({icon:'success', title:'เพิ่มแล้ว', toast:true, position:'top-end', showConfirmButton:false, timer:1000});
+    }
+
+    function updateCartBtn() {
+        document.getElementById('cart-count').innerText = cart.reduce((sum, i) => sum + i.qty, 0);
+    }
+
+    function showCart() {
+        if(cart.length === 0) return Swal.fire('ตะกร้าว่างเปล่า');
+        const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+        const html = cart.map(i => `<div class="d-flex justify-content-between"><span>${i.name} x${i.qty}</span><span>${i.price*i.qty}</span></div>`).join('') 
+                     + `<hr><h5>รวม: ${total} บาท</h5>`;
+        
+        Swal.fire({
+            title: 'รายการอาหาร', html: html, showCancelButton: true, confirmButtonText: 'ยืนยันสั่งอาหาร'
+        }).then((res) => {
+            if(res.isConfirmed) submitOrder(total);
         });
     }
 
-    function filterMenu(cat, btn) {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if(cat === 'all') renderMenu(allMenu);
-        else renderMenu(allMenu.filter(m => m.category === cat));
-    }
-
-    // --- Modal Logic ---
-    function prepareAddItem(id) {
-        tempItem = allMenu.find(m => m.id === id);
-        selectedOptions = []; 
-        document.getElementById('itemNote').value = '';
-        
-        document.getElementById('modalItemName').innerText = tempItem.name;
-        document.getElementById('modalItemImg').src = tempItem.image_url || 'https://via.placeholder.com/300?text=No+Image';
-
-        updateModalPrice();
-
-        const list = document.getElementById('optionList');
-        list.innerHTML = '';
-
-        // เช็คว่ามี Options หรือไม่ (Sheet ส่งมาเป็น Object เรียบร้อยแล้วจาก Backend)
-        if (tempItem.options && Array.isArray(tempItem.options) && tempItem.options.length > 0) {
-            tempItem.options.forEach((opt, idx) => {
-                list.innerHTML += `
-                <div class="opt-btn" onclick="toggleOpt(this, ${idx})">
-                    <span>${opt.name}</span>
-                    <span class="opt-price">${opt.price > 0 ? '+'+opt.price : ''}</span>
-                </div>`;
-            });
-        } else {
-            list.innerHTML = '<div class="text-center text-muted py-2">- ไม่มีตัวเลือกเสริม -</div>';
-        }
-        new bootstrap.Modal(document.getElementById('optionModal')).show();
-    }
-
-    function toggleOpt(btn, idx) {
-        const opt = tempItem.options[idx];
-        const index = selectedOptions.findIndex(o => o.name === opt.name);
-        if (index > -1) {
-            selectedOptions.splice(index, 1);
-            btn.classList.remove('active');
-        } else {
-            selectedOptions.push(opt);
-            btn.classList.add('active');
-        }
-        updateModalPrice();
-    }
-
-    function updateModalPrice() {
-        const optionsTotal = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
-        document.getElementById('btnTotalPrice').innerText = tempItem.price + optionsTotal;
-    }
-
-    function confirmAddItem() {
-        addToCart(tempItem, selectedOptions, document.getElementById('itemNote').value);
-        bootstrap.Modal.getInstance(document.getElementById('optionModal')).hide();
-    }
-
-    function addToCart(item, options, note) {
-        const optionsPrice = options.reduce((sum, opt) => sum + opt.price, 0);
-        const finalPrice = item.price + optionsPrice;
-        
-        let optionString = options.length > 0 ? options.map(o => o.name).join(', ') : 'ธรรมดา'; 
-
-        cart.push({ 
-            id: item.id, 
-            name: item.name, 
-            price: finalPrice, 
-            option: optionString, 
-            note: note, 
-            image: item.image_url, 
-            qty: 1 
-        });
-        
-        updateCartUI();
-        const Toast = Swal.mixin({ toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
-        Toast.fire({ icon: 'success', title: 'เพิ่มลงตะกร้าแล้ว' });
-    }
-
-    function updateCartUI() {
-        const count = cart.length;
-        const total = cart.reduce((sum, i) => sum + i.price, 0);
-        document.getElementById('cartCount').innerText = count;
-        document.getElementById('cartTotal').innerText = total;
-        document.getElementById('modalCartTotal').innerText = total + " ฿";
-        const bar = document.getElementById('cartBar');
-        if(count > 0) bar.classList.remove('d-none'); else bar.classList.add('d-none');
-    }
-
-    function openCartModal() {
-        const list = document.getElementById('cartListContainer');
-        list.innerHTML = '';
-        if (cart.length === 0) { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); return; }
-        
-        cart.forEach((item, idx) => {
-            const imgHtml = item.image 
-                ? `<img src="${item.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">`
-                : `<div class="bg-light rounded d-flex align-items-center justify-content-center text-muted" style="width:50px;height:50px;"><i class="fas fa-utensils"></i></div>`;
-
-            list.innerHTML += `
-                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                    <div class="d-flex align-items-center gap-3">
-                        ${imgHtml}
-                        <div>
-                            <div class="fw-bold">${item.name} <small class="text-primary">(${item.option})</small></div>
-                            <div class="small text-muted">${item.note ? '📝 '+item.note : ''}</div>
-                            <div class="fw-bold text-primary">${item.price} ฿</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-outline-danger btn-sm border-0" onclick="removeFromCart(${idx})">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>`;
-        });
-        const modalEl = document.getElementById('cartModal');
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        modal.show();
-    }
-
-    function removeFromCart(idx) {
-        cart.splice(idx, 1);
-        updateCartUI();
-        if(cart.length === 0) {
-            bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
-        } else {
-            openCartModal();
-        }
-    }
-
-    // --- ส่งออเดอร์ไปยัง Google Apps Script ---
-    async function submitOrder() {
-        if(cart.length === 0) return;
-        
-        Swal.fire({ title: 'กำลังส่งออเดอร์...', text: 'กรุณารอสักครู่', didOpen: () => Swal.showLoading() });
-
-        const orderData = {
-            action: 'submitOrder',
-            table_no: currentTable,
-            items: cart,
-            total_price: parseInt(document.getElementById('cartTotal').innerText)
-        };
-
-        try {
-            // ใช้ fetch แบบ POST
-            const response = await fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(orderData)
-            });
-            
-            const result = await response.json();
-
-            if(result.result === 'success') {
-                 Swal.fire({ 
-                    icon: 'success', 
-                    title: 'สั่งอาหารเรียบร้อย!', 
-                    text: 'ออเดอร์ถูกส่งเข้าครัวแล้วครับ', 
-                    timer: 2000, 
-                    showConfirmButton: false 
-                });
-                
-                // เคลียร์ตะกร้า
-                cart = []; 
-                updateCartUI(); 
-                bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
-            } else {
-                Swal.fire('Error', 'บันทึกข้อมูลไม่ได้: ' + (result.message || 'Unknown error'), 'error');
+    function submitOrder(total) {
+        Swal.fire({title:'กำลังส่งออเดอร์...', didOpen:()=>Swal.showLoading()});
+        const table = document.getElementById('tableNo').value;
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action:'submitOrder', table_no:table, items:cart, total_price:total })
+        }).then(r => r.json()).then(d => {
+            if(d.result === 'success') {
+                cart = []; updateCartBtn();
+                Swal.fire('สำเร็จ', `ออเดอร์เข้าครัวแล้ว! คิวที่: ${d.queue_no}`, 'success');
             }
-
-        } catch (error) {
-            console.error(error);
-            Swal.fire('Error', 'เกิดข้อผิดพลาดในการส่งข้อมูล (Network Error)', 'error');
-        }
+        });
     }
+
+    init();
 </script>
 </body>
 </html>
-
