@@ -9,97 +9,67 @@
     <style> .menu-img { height: 150px; object-fit: cover; width: 100%; } </style>
 </head>
 <body>
-    <div class="container py-3">
-        <h3 class="text-center mb-4">🍽️ เมนูอาหาร</h3>
-        
-        <div class="input-group mb-3">
-            <span class="input-group-text">เบอร์โต๊ะ</span>
-            <select id="tableNo" class="form-select">
-                <option value="1">โต๊ะ 1</option><option value="2">โต๊ะ 2</option>
-                <option value="3">โต๊ะ 3</option><option value="4">โต๊ะ 4</option>
-            </select>
-        </div>
+    <div class="category-bar">
+    <div class="cat-item active" onclick="filter('all')">🔥 ทั้งหมด</div>
+    <div class="cat-item" onclick="filter('สเต็ก')">🥩 สเต็ก</div>
+    <div class="cat-item" onclick="filter('เบอร์เกอร์')">🍔 เบอร์เกอร์</div>
+    <div class="cat-item" onclick="filter('เครื่องดื่ม')">🥤 เครื่องดื่ม</div>
+</div>
 
-        <div class="row" id="menu-list">
-            <p class="text-center">กำลังโหลดเมนู...</p>
-        </div>
+<div id="menu-grid" class="row g-3"></div>
 
-        <nav class="navbar fixed-bottom navbar-light bg-light border-top p-3">
-            <button class="btn btn-primary w-100 p-2" onclick="showCart()">
-                🛒 ตะกร้าสินค้า (<span id="cart-count">0</span>)
-            </button>
-        </nav>
+<div class="modal fade" id="optionModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-body text-center">
+        <img id="opt-img" src="" class="img-fluid rounded mb-3" style="max-height: 200px;">
+        <h4 id="opt-name" class="fw-bold"></h4>
+        <div id="options-container" class="text-start mt-3">
+            </div>
+        <button class="btn btn-primary w-100 mt-4 p-3 fw-bold" onclick="confirmToCart()">บันทึก</button>
+      </div>
     </div>
+  </div>
+</div>
 
 <script>
-    // 🔴 แก้ไข URL ตรงนี้ เป็น URL เดียวกันกับหน้า Admin
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwtYK7lOXkqhdmgJvlbZIQKZj9MxulxPrFi9DKIu5jgpkA7Psood1I5Zv9Nu-wsg-4ing/exec'; 
-    let cart = [];
-    let menuData = [];
+let selectedItem = null;
+let currentOptions = [];
 
-    async function init() {
-        const res = await fetch(API_URL + '?action=getMenu');
-        menuData = await res.json();
-        renderMenu();
+// ฟังก์ชันเมื่อกดปุ่ม [+] สีเหลือง (เหมือนรูป 7)
+function openOptions(id) {
+    selectedItem = allMenu.find(m => m.id == id);
+    if (!selectedItem.options || selectedItem.options.length === 0) {
+        addToCart(selectedItem, []); // ถ้าไม่มีออพชั่น ให้เข้าตะกร้าเลย
+        return;
     }
-
-    function renderMenu() {
-        const div = document.getElementById('menu-list');
-        div.innerHTML = menuData.map(m => `
-            <div class="col-6 col-md-4 mb-3">
-                <div class="card h-100 shadow-sm border-0">
-                    <img src="${m.image_url}" class="card-img-top menu-img" onerror="this.src='https://placehold.co/400'">
-                    <div class="card-body p-2 text-center">
-                        <h6 class="card-title">${m.name}</h6>
-                        <p class="text-danger fw-bold">${m.price} บาท</p>
-                        <button class="btn btn-outline-primary btn-sm w-100" onclick="addToCart('${m.id}')">+ เพิ่ม</button>
-                    </div>
+    
+    // แสดง Modal เลือกออพชั่น (เหมือนรูป 5)
+    document.getElementById('opt-name').innerText = selectedItem.name;
+    document.getElementById('opt-img').src = selectedItem.image_url;
+    
+    let html = '<h6>ตัวเลือกเสริม</h6>';
+    selectedItem.options.forEach((opt, i) => {
+        html += `
+            <div class="d-flex justify-content-between align-items-center mb-2 border p-2 rounded">
+                <div>
+                    <input type="radio" name="food_opt" id="opt${i}" value='${JSON.stringify(opt)}' ${i==0?'checked':''}>
+                    <label for="opt${i}">${opt.name}</label>
                 </div>
-            </div>`).join('');
-    }
+                <span class="text-danger">+${opt.price} ฿</span>
+            </div>`;
+    });
+    document.getElementById('options-container').innerHTML = html;
+    new bootstrap.Modal(document.getElementById('optionModal')).show();
+}
 
-    function addToCart(id) {
-        const item = menuData.find(m => m.id == id);
-        const existing = cart.find(c => c.id == id);
-        if(existing) existing.qty++;
-        else cart.push({...item, qty:1});
-        updateCartBtn();
-        Swal.fire({icon:'success', title:'เพิ่มแล้ว', toast:true, position:'top-end', showConfirmButton:false, timer:1000});
-    }
-
-    function updateCartBtn() {
-        document.getElementById('cart-count').innerText = cart.reduce((sum, i) => sum + i.qty, 0);
-    }
-
-    function showCart() {
-        if(cart.length === 0) return Swal.fire('ตะกร้าว่างเปล่า');
-        const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
-        const html = cart.map(i => `<div class="d-flex justify-content-between"><span>${i.name} x${i.qty}</span><span>${i.price*i.qty}</span></div>`).join('') 
-                     + `<hr><h5>รวม: ${total} บาท</h5>`;
-        
-        Swal.fire({
-            title: 'รายการอาหาร', html: html, showCancelButton: true, confirmButtonText: 'ยืนยันสั่งอาหาร'
-        }).then((res) => {
-            if(res.isConfirmed) submitOrder(total);
-        });
-    }
-
-    function submitOrder(total) {
-        Swal.fire({title:'กำลังส่งออเดอร์...', didOpen:()=>Swal.showLoading()});
-        const table = document.getElementById('tableNo').value;
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action:'submitOrder', table_no:table, items:cart, total_price:total })
-        }).then(r => r.json()).then(d => {
-            if(d.result === 'success') {
-                cart = []; updateCartBtn();
-                Swal.fire('สำเร็จ', `ออเดอร์เข้าครัวแล้ว! คิวที่: ${d.queue_no}`, 'success');
-            }
-        });
-    }
-
-    init();
+function confirmToCart() {
+    const selectedOpt = JSON.parse(document.querySelector('input[name="food_opt"]:checked').value);
+    addToCart(selectedItem, [selectedOpt]);
+    bootstrap.Modal.getInstance(document.getElementById('optionModal')).hide();
+}
 </script>
 </body>
 </html>
+
 
