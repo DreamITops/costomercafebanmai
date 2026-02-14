@@ -2,8 +2,14 @@
   "name": "Cafe Banmai",
   "short_name": "Banmai",
   "start_url": "/",
-  "display": "browser",  
+  "display": "browser", 
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
-  "icons": [...]
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3274/3274099.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
 }
