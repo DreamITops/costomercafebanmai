@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes"> <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
     <title>สั่งอาหาร - Cafe Banmai</title>
     
@@ -38,9 +39,6 @@
         .opt-btn.active::after { content: '\f00c'; font-family: 'Font Awesome 5 Free'; font-weight: 900; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #0d6efd; }
         .opt-price { margin-right: 20px; color: #666; }
         .opt-btn.active .opt-price { color: #0d6efd; }
-
-        /* Exit Button */
-        .btn-exit { font-size: 0.8rem; color: #dc3545; border: 1px solid #dc3545; padding: 2px 8px; border-radius: 10px; background: white; }
     </style>
 </head>
 <body>
@@ -60,10 +58,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded shadow-sm">
         <h5 class="fw-bold m-0"><i class="fas fa-utensils text-primary"></i> รายการเมนู</h5>
         <div class="text-end">
-            <span class="badge bg-primary fs-6" id="tableDisplay">โต๊ะ ...</span>
-            <div class="mt-1" onclick="clearTable()" style="cursor: pointer;">
-                <small class="text-danger"><i class="fas fa-sign-out-alt"></i> เปลี่ยนโต๊ะ</small>
-            </div>
+            <span class="badge bg-primary fs-6" id="tableDisplay">กำลังระบุโต๊ะ...</span>
         </div>
     </div>
     
@@ -141,27 +136,27 @@
 
     // --- เริ่มต้นโหลดหน้าเว็บ ---
     window.onload = async () => {
+        // ล้างค่าถาวรเก่าทิ้งให้หมดก่อน (เพื่อแก้ปัญหาเครื่องค้างจากโค้ดชุดเก่า)
+        localStorage.removeItem('my_table'); 
+
         // 1. ตรวจสอบ URL Parameter (กรณีสแกน QR)
         const params = new URLSearchParams(window.location.search);
         let tableFromUrl = params.get('table');
 
         if (tableFromUrl) {
-            // ถ้ามีค่าจาก QR ให้ใช้ค่านี้และบันทึกลง Session
+            // ถ้ามีค่าจาก QR ให้ใช้ค่านี้และบันทึกลง Session (ความจำชั่วคราว)
             currentTable = tableFromUrl;
             sessionStorage.setItem('current_table_session', currentTable);
             
-            // ล้าง URL ให้สะอาด (ไม่ให้เห็น ?table=1)
+            // ล้าง URL ให้สะอาด
             window.history.replaceState({}, document.title, "/"); 
         } else {
-            // 2. ถ้าไม่มีใน URL ให้ดูใน Session (ความจำชั่วคราว)
+            // 2. ถ้าไม่มีใน URL ให้ดูใน Session (เผื่อลูกค้ากด Refresh หน้าจอ จะได้ไม่หาย)
             currentTable = sessionStorage.getItem('current_table_session');
         }
 
-        // 3. ถ้ายังไม่มีอีก (เปิดเว็บตรงๆ ครั้งแรก) ให้ถาม
+        // 3. ถ้ายังไม่มีอีก (เปิดเว็บตรงๆ โดยไม่สแกน)
         if(!currentTable) {
-            // ล้าง localStorage เก่าทิ้งไปเลย (แก้ปัญหาค้างจากเวอร์ชั่นเก่า)
-            localStorage.removeItem('my_table'); 
-
             const { value } = await Swal.fire({
                 title: 'กรุณาเลือกโต๊ะ',
                 input: 'select',
@@ -183,24 +178,6 @@
             loadMenu();
         }
     };
-
-    // ฟังก์ชันเคลียร์โต๊ะ (แก้ปัญหาเครื่องค้าง)
-    function clearTable() {
-        Swal.fire({
-            title: 'ออกจากโต๊ะ?',
-            text: 'คุณต้องการเปลี่ยนโต๊ะหรือเลิกใช้งานใช่ไหม',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'ใช่, ออกจากโต๊ะ',
-            cancelButtonText: 'ยกเลิก'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                sessionStorage.clear(); // ล้างความจำชั่วคราว
-                localStorage.clear();   // ล้างความจำถาวร (เผื่อมีของเก่า)
-                location.reload();      // รีเฟรชหน้าใหม่
-            }
-        });
-    }
 
     // --- ส่วนโหลดเมนู ---
     async function loadMenu() {
@@ -366,7 +343,6 @@
     async function submitOrder() {
         if(cart.length === 0) return;
         
-        // เช็คว่ามีโต๊ะหรือยัง (กันพลาด)
         if(!currentTable) {
              Swal.fire('Error', 'ไม่พบข้อมูลโต๊ะ กรุณารีเฟรชหน้าเว็บ', 'error');
              return;
@@ -374,7 +350,6 @@
 
         Swal.fire({ title: 'กำลังส่งออเดอร์...', didOpen: () => Swal.showLoading() });
         
-        // Logic เช็คบิลเก่า/ใหม่
         const { data: existing } = await db.from('orders').select('*')
             .eq('table_no', currentTable)
             .neq('status', 'paid')
@@ -409,10 +384,6 @@
                 cart = []; 
                 updateCartUI(); 
                 bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
-                
-                // (Optional) ถ้าต้องการให้เคลียร์ Session หลังสั่งเสร็จเพื่อความปลอดภัยสุดๆ
-                // sessionStorage.removeItem('current_table_session');
-                // location.reload();
             });
         }
     }
