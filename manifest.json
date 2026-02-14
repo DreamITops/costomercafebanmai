@@ -2,7 +2,7 @@
   "name": "Cafe Banmai",
   "short_name": "Banmai",
   "start_url": "/",
-  "display": "browser",  <-- แก้ตรงนี้ จาก "standalone" เป็น "browser"
+  "display": "browser",  
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [...]
