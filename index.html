@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-    <title>สั่งอาหาร - Cafe Banmai</title>
+    <title>ระบบจัดการเมนู - Cafe Banmai</title>
     
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -21,30 +21,26 @@
         /* Category Scroll */
         .cat-scroll { display: flex; overflow-x: auto; padding: 15px; gap: 10px; background: white; position: sticky; top: 0; z-index: 90; box-shadow: 0 2px 5px rgba(0,0,0,0.05); -ms-overflow-style: none; scrollbar-width: none; }
         .cat-scroll::-webkit-scrollbar { display: none; }
-        .cat-btn { white-space: nowrap; border: 1px solid #ddd; padding: 8px 20px; border-radius: 20px; background: white; color: #666; transition: 0.2s; }
-        .cat-btn.active { background: #0d6efd; color: white; border-color: #0d6efd; font-weight: bold; transform: scale(1.05); }
+        .cat-btn { white-space: nowrap; border: 1px solid #ddd; padding: 8px 20px; border-radius: 20px; background: white; color: #666; transition: 0.2s; cursor: pointer; }
+        .cat-btn.active { background: #198754; color: white; border-color: #198754; font-weight: bold; transform: scale(1.05); }
         
         /* Menu Card */
-        .menu-card { background: white; border-radius: 12px; overflow: hidden; border: none; box-shadow: 0 2px 10px rgba(0,0,0,0.03); height: 100%; display: flex; flex-direction: column; transition: transform 0.1s; cursor: pointer; }
-        .menu-card:active { transform: scale(0.98); }
+        .menu-card { background: white; border-radius: 12px; overflow: hidden; border: 1px solid #eee; box-shadow: 0 2px 10px rgba(0,0,0,0.03); height: 100%; display: flex; flex-direction: column; transition: transform 0.1s; }
         .menu-img { height: 140px; object-fit: cover; width: 100%; background: #eee; }
         
-        /* Floating Cart */
-        .float-cart { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 500px; background: #212529; color: white; padding: 15px 25px; border-radius: 50px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.2); cursor: pointer; z-index: 1000; transition: all 0.3s; }
-        .float-cart:active { transform: translateX(-50%) scale(0.95); }
+        /* Search Bar */
+        .search-bar { position: relative; }
+        .search-bar i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #888; }
+        .search-bar input { padding-left: 40px; border-radius: 30px; }
         
-        /* Options */
-        .opt-btn { width: 100%; margin-bottom: 8px; border: 1px solid #eee; text-align: left; padding: 10px; border-radius: 10px; background: white; display: flex; justify-content: space-between; position: relative; }
-        .opt-btn.active { border-color: #0d6efd; background: #f0f7ff; color: #0d6efd; font-weight: bold; }
-        .opt-btn.active::after { content: '\f00c'; font-family: 'Font Awesome 5 Free'; font-weight: 900; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #0d6efd; }
-        .opt-price { margin-right: 20px; color: #666; }
-        .opt-btn.active .opt-price { color: #0d6efd; }
+        /* Options & Inputs for Edit */
+        .form-label { font-weight: 600; color: #444; font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
 <div class="cat-scroll">
-    <button class="cat-btn active" onclick="filterMenu('all', this)">ทั้งหมด</button>
+    <button class="cat-btn active" onclick="filterMenu('all', this)">หมวดหมู่ทั้งหมด</button>
     <button class="cat-btn" onclick="filterMenu('สเต็ก', this)">🥩 สเต็ก</button>
     <button class="cat-btn" onclick="filterMenu('เบอร์เกอร์', this)">🍔 เบอร์เกอร์</button>
     <button class="cat-btn" onclick="filterMenu('อาหารจานเดี่ยว', this)">🍛 จานเดี่ยว</button>
@@ -55,66 +51,62 @@
 </div>
 
 <div class="container mt-3">
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" class="form-control border-0 shadow-sm py-2" placeholder="ค้นหาชื่อเมนู..." onkeyup="applyFilters()">
+            </div>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-3 bg-white p-3 rounded shadow-sm">
-        <h5 class="fw-bold m-0"><i class="fas fa-utensils text-primary"></i> รายการเมนู</h5>
+        <h5 class="fw-bold m-0"><i class="fas fa-edit text-success"></i> ระบบจัดการเมนู</h5>
         <div class="text-end">
-            <span class="badge bg-primary fs-6" id="tableDisplay">กำลังระบุโต๊ะ...</span>
+            <button class="btn btn-success btn-sm rounded-pill"><i class="fas fa-plus"></i> เพิ่มเมนูใหม่</button>
         </div>
     </div>
     
     <div id="menuGrid" class="row g-3">
         <div class="col-12 text-center mt-5">
-            <div class="spinner-border text-primary" role="status"></div>
+            <div class="spinner-border text-success" role="status"></div>
             <div class="mt-2 text-muted">กำลังโหลดเมนู...</div>
         </div>
     </div>
 </div>
 
-<div id="cartBar" class="float-cart d-none" onclick="openCartModal()">
-    <div class="d-flex align-items-center">
-        <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center fw-bold me-2" style="width:25px; height:25px;" id="cartCount">0</div>
-        <span>ดูตะกร้า</span>
-    </div>
-    <div class="fw-bold"><span id="cartTotal">0</span> ฿ ></div>
-</div>
-
-<div class="modal fade" id="optionModal" tabindex="-1">
+<div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 overflow-hidden">
             <div class="modal-header border-0 p-0 position-relative">
-                <img id="modalItemImg" src="" style="width: 100%; height: 200px; object-fit: cover;">
+                <img id="modalEditImgPreview" src="" style="width: 100%; height: 200px; object-fit: cover;">
                 <button type="button" class="btn-close bg-white p-2 m-2 position-absolute top-0 end-0 rounded-circle opacity-100 shadow-sm" data-bs-dismiss="modal"></button>
                 <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);">
-                    <h4 class="modal-title fw-bold text-white mb-0" id="modalItemName">ชื่อเมนู</h4>
+                    <h4 class="modal-title fw-bold text-white mb-0">แก้ไขข้อมูลเมนู</h4>
                 </div>
             </div>
-            <div class="modal-body">
-                <p class="text-muted small mb-2"><i class="fas fa-sliders-h"></i> ตัวเลือกเสริม</p>
-                <div id="optionList" class="mb-3"></div>
-                <input type="text" id="itemNote" class="form-control" placeholder="📝 หมายเหตุ (เช่น หวานน้อย)">
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button class="btn btn-primary w-100 py-2 fw-bold" onclick="confirmAddItem()">
-                    เพิ่มลงตะกร้า (<span id="btnTotalPrice">0</span> ฿)
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+            <div class="modal-body bg-light">
+                <input type="hidden" id="editItemId">
+                
+                <div class="mb-3">
+                    <label class="form-label"><i class="fas fa-tag"></i> ชื่อเมนู</label>
+                    <input type="text" id="editItemName" class="form-control" placeholder="ระบุชื่อเมนู">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label"><i class="fas fa-coins"></i> ราคา (บาท)</label>
+                    <input type="number" id="editItemPrice" class="form-control" placeholder="ระบุราคา">
+                </div>
 
-<div class="modal fade" id="cartModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-bottom modal-fullscreen-sm-down">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold"><i class="fas fa-shopping-basket"></i> ตะกร้าสินค้า</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="mb-3">
+                    <label class="form-label"><i class="fas fa-image"></i> ลิงก์รูปภาพ (URL)</label>
+                    <input type="text" id="editItemImage" class="form-control" placeholder="วางลิงก์รูปภาพที่นี่" onchange="updatePreviewImage()">
+                </div>
             </div>
-            <div class="modal-body p-0">
-                <div id="cartListContainer" class="list-group list-group-flush"></div>
-            </div>
-            <div class="modal-footer d-block bg-light">
-                <div class="d-flex justify-content-between mb-2"><span>ยอดรวม</span><span class="fw-bold fs-4 text-primary" id="modalCartTotal">0 ฿</span></div>
-                <button class="btn btn-success w-100 py-3 rounded-4 fw-bold" onclick="submitOrder()">🚀 ยืนยันสั่งอาหาร</button>
+            <div class="modal-footer border-0 pt-0 bg-light">
+                <button class="btn btn-warning w-100 py-2 fw-bold text-dark" onclick="saveEditMenu()">
+                    <i class="fas fa-save"></i> บันทึกการเปลี่ยนแปลง
+                </button>
             </div>
         </div>
     </div>
@@ -129,54 +121,13 @@
     try { db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY); } catch(e) { console.error(e); }
 
     let allMenu = [];
-    let cart = [];
-    let currentTable = null;
-    let tempItem = null;
-    let selectedOptions = [];
+    let currentCategory = 'all';
+    let editModalInstance = null;
 
     // --- เริ่มต้นโหลดหน้าเว็บ ---
     window.onload = async () => {
-        // ล้างค่าถาวรเก่าทิ้งให้หมดก่อน (เพื่อแก้ปัญหาเครื่องค้างจากโค้ดชุดเก่า)
-        localStorage.removeItem('my_table'); 
-
-        // 1. ตรวจสอบ URL Parameter (กรณีสแกน QR)
-        const params = new URLSearchParams(window.location.search);
-        let tableFromUrl = params.get('table');
-
-        if (tableFromUrl) {
-            // ถ้ามีค่าจาก QR ให้ใช้ค่านี้และบันทึกลง Session (ความจำชั่วคราว)
-            currentTable = tableFromUrl;
-            sessionStorage.setItem('current_table_session', currentTable);
-            
-            // ล้าง URL ให้สะอาด
-            window.history.replaceState({}, document.title, "/"); 
-        } else {
-            // 2. ถ้าไม่มีใน URL ให้ดูใน Session (เผื่อลูกค้ากด Refresh หน้าจอ จะได้ไม่หาย)
-            currentTable = sessionStorage.getItem('current_table_session');
-        }
-
-        // 3. ถ้ายังไม่มีอีก (เปิดเว็บตรงๆ โดยไม่สแกน)
-        if(!currentTable) {
-            const { value } = await Swal.fire({
-                title: 'กรุณาเลือกโต๊ะ',
-                input: 'select',
-                inputOptions: {'1':'โต๊ะ 1', '2':'โต๊ะ 2', '3':'โต๊ะ 3', '4':'โต๊ะ 4', '5':'โต๊ะ 5', 'กลับบ้าน':'กลับบ้าน'},
-                inputPlaceholder: 'เลือกโต๊ะที่นั่ง',
-                allowOutsideClick: false,
-                confirmButtonText: 'ตกลง'
-            });
-            
-            if(value) {
-                currentTable = value;
-                sessionStorage.setItem('current_table_session', currentTable);
-            }
-        }
-
-        // แสดงผล
-        if(currentTable) {
-            document.getElementById('tableDisplay').innerText = `โต๊ะ ${currentTable}`;
-            loadMenu();
-        }
+        editModalInstance = new bootstrap.Modal(document.getElementById('editModal'));
+        loadMenu();
     };
 
     // --- ส่วนโหลดเมนู ---
@@ -184,32 +135,65 @@
         const { data, error } = await db.from('menu_items').select('*').order('id');
         if(error) { Swal.fire('Error', 'โหลดเมนูไม่ได้', 'error'); return; }
         allMenu = data;
-        renderMenu(data);
+        applyFilters();
     }
 
+    // --- ระบบค้นหาและกรองหมวดหมู่ (ทำงานร่วมกัน) ---
+    function applyFilters() {
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
+        
+        const filtered = allMenu.filter(m => {
+            const matchSearch = m.name.toLowerCase().includes(searchText);
+            const matchCategory = currentCategory === 'all' || m.category === currentCategory;
+            return matchSearch && matchCategory;
+        });
+
+        renderMenu(filtered);
+    }
+
+    function filterMenu(cat, btn) {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentCategory = cat;
+        applyFilters();
+    }
+
+    // --- ส่วนแสดงผลหน้าจัดการเมนู ---
     function renderMenu(items) {
         const grid = document.getElementById('menuGrid');
         grid.innerHTML = '';
-        if(items.length === 0) { grid.innerHTML = '<div class="col-12 text-center text-muted py-5">ยังไม่มีรายการในหมวดนี้</div>'; return; }
+        
+        if(items.length === 0) { 
+            grid.innerHTML = '<div class="col-12 text-center text-muted py-5">ไม่พบเมนูที่ค้นหา</div>'; 
+            return; 
+        }
+
         items.forEach((m) => {
             const img = m.image_url || 'https://via.placeholder.com/150?text=No+Image';
             const isSoldOut = m.is_available === false;
             const opacityClass = isSoldOut ? 'opacity-50' : '';
-            const action = isSoldOut ? `Swal.fire('ขออภัย', 'สินค้านี้หมดค่ะ', 'warning')` : `prepareAddItem(${m.id})`;
-            const btnColor = isSoldOut ? 'btn-secondary' : 'btn-warning';
+            
+            // ปุ่มเปิด/ปิด สถานะ
+            const statusBtn = isSoldOut 
+                ? `<button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="toggleStatus(${m.id}, true)"><i class="fas fa-eye-slash"></i> สินค้าหมด</button>`
+                : `<button class="btn btn-outline-success btn-sm w-100 mb-2" onclick="toggleStatus(${m.id}, false)"><i class="fas fa-eye"></i> พร้อมขาย</button>`;
 
             grid.innerHTML += `
                 <div class="col-6 col-md-4 col-lg-3">
-                    <div class="menu-card ${opacityClass}" onclick="${action}">
+                    <div class="menu-card ${opacityClass}">
                         <div style="position:relative;">
                             <img src="${img}" class="menu-img">
                             ${isSoldOut ? '<span class="badge bg-danger position-absolute top-0 end-0 m-2">หมด</span>' : ''}
                         </div>
                         <div class="p-3 d-flex flex-column flex-grow-1">
                             <h6 class="fw-bold mb-1 text-truncate">${m.name}</h6>
-                            <div class="mt-auto d-flex justify-content-between align-items-center">
-                                <span class="text-primary fw-bold">${m.price}.-</span>
-                                <button class="btn btn-sm ${btnColor} rounded-circle" style="width:30px;height:30px;"><i class="fas fa-plus"></i></button>
+                            <span class="text-primary fw-bold mb-3">${m.price}.-</span>
+                            
+                            <div class="mt-auto">
+                                ${statusBtn}
+                                <button class="btn btn-warning btn-sm w-100 text-dark fw-bold" onclick="openEditModal(${m.id})">
+                                    <i class="fas fa-pen"></i> แก้ไข
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -217,174 +201,71 @@
         });
     }
 
-    function filterMenu(cat, btn) {
-        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        if(cat === 'all') renderMenu(allMenu);
-        else renderMenu(allMenu.filter(m => m.category === cat));
-    }
+    // --- เปิด/ปิดสถานะสินค้าหมด (Quick Toggle) ---
+    async function toggleStatus(id, newStatus) {
+        // อัปเดตฝั่งหน้าจอทันทีเพื่อให้ลูกค้าไม่ต้องรอโหลด
+        const index = allMenu.findIndex(m => m.id === id);
+        if(index > -1) allMenu[index].is_available = newStatus;
+        applyFilters();
 
-    // --- ส่วนจัดการตะกร้าสินค้า ---
-    function prepareAddItem(id) {
-        tempItem = allMenu.find(m => m.id === id);
-        selectedOptions = []; 
-        document.getElementById('itemNote').value = '';
-        
-        document.getElementById('modalItemName').innerText = tempItem.name;
-        document.getElementById('modalItemImg').src = tempItem.image_url || 'https://via.placeholder.com/300?text=No+Image';
-        updateModalPrice();
-
-        const list = document.getElementById('optionList');
-        list.innerHTML = '';
-
-        if (tempItem.options && Array.isArray(tempItem.options) && tempItem.options.length > 0) {
-            tempItem.options.forEach((opt, idx) => {
-                list.innerHTML += `
-                <div class="opt-btn" onclick="toggleOpt(this, ${idx})">
-                    <span>${opt.name}</span>
-                    <span class="opt-price">${opt.price > 0 ? '+'+opt.price : ''}</span>
-                </div>`;
-            });
+        // ส่งข้อมูลไปอัปเดตบน Supabase
+        const { error } = await db.from('menu_items').update({ is_available: newStatus }).eq('id', id);
+        if(error) {
+            Swal.fire('Error', 'อัปเดตสถานะไม่สำเร็จ', 'error');
+            loadMenu(); // โหลดใหม่เพื่อดึงค่าที่ถูกต้องกลับมา
         } else {
-            list.innerHTML = '<div class="text-center text-muted py-2">- ไม่มีตัวเลือกเสริม -</div>';
+            const Toast = Swal.mixin({ toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
+            Toast.fire({ icon: 'success', title: 'อัปเดตสถานะเรียบร้อย' });
         }
-        new bootstrap.Modal(document.getElementById('optionModal')).show();
     }
 
-    function toggleOpt(btn, idx) {
-        const opt = tempItem.options[idx];
-        const index = selectedOptions.findIndex(o => o.name === opt.name);
-        if (index > -1) {
-            selectedOptions.splice(index, 1);
-            btn.classList.remove('active');
-        } else {
-            selectedOptions.push(opt);
-            btn.classList.add('active');
-        }
-        updateModalPrice();
+    // --- ฟังก์ชันดึงข้อมูลมาแสดงใน Modal แก้ไข ---
+    function openEditModal(id) {
+        const item = allMenu.find(m => m.id === id);
+        if(!item) return;
+
+        // นำข้อมูลลงฟอร์ม
+        document.getElementById('editItemId').value = item.id;
+        document.getElementById('editItemName').value = item.name;
+        document.getElementById('editItemPrice').value = item.price;
+        document.getElementById('editItemImage').value = item.image_url || '';
+        document.getElementById('modalEditImgPreview').src = item.image_url || 'https://via.placeholder.com/300?text=No+Image';
+
+        editModalInstance.show();
     }
 
-    function updateModalPrice() {
-        const optionsTotal = selectedOptions.reduce((sum, opt) => sum + opt.price, 0);
-        document.getElementById('btnTotalPrice').innerText = tempItem.price + optionsTotal;
+    // --- อัปเดตภาพพรีวิวแบบเรียลไทม์เวลาวางลิงก์ ---
+    function updatePreviewImage() {
+        const url = document.getElementById('editItemImage').value;
+        document.getElementById('modalEditImgPreview').src = url || 'https://via.placeholder.com/300?text=No+Image';
     }
 
-    function confirmAddItem() {
-        addToCart(tempItem, selectedOptions, document.getElementById('itemNote').value);
-        bootstrap.Modal.getInstance(document.getElementById('optionModal')).hide();
-    }
+    // --- บันทึกการแก้ไขลง Supabase ---
+    async function saveEditMenu() {
+        const id = document.getElementById('editItemId').value;
+        const newName = document.getElementById('editItemName').value;
+        const newPrice = document.getElementById('editItemPrice').value;
+        const newImage = document.getElementById('editItemImage').value;
 
-    function addToCart(item, options, note) {
-        const optionsPrice = options.reduce((sum, opt) => sum + opt.price, 0);
-        const finalPrice = item.price + optionsPrice;
-        let optionString = options.length > 0 ? options.map(o => o.name).join(', ') : 'ปกติ';
-
-        cart.push({ 
-            id: item.id, 
-            name: item.name, 
-            price: finalPrice, 
-            option: optionString, 
-            note: note, 
-            image: item.image_url,
-            qty: 1 
-        });
-        
-        updateCartUI();
-        const Toast = Swal.mixin({ toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
-        Toast.fire({ icon: 'success', title: 'เพิ่มลงตะกร้าแล้ว' });
-    }
-
-    function updateCartUI() {
-        const count = cart.length;
-        const total = cart.reduce((sum, i) => sum + i.price, 0);
-        document.getElementById('cartCount').innerText = count;
-        document.getElementById('cartTotal').innerText = total;
-        document.getElementById('modalCartTotal').innerText = total + " ฿";
-        const bar = document.getElementById('cartBar');
-        if(count > 0) bar.classList.remove('d-none'); else bar.classList.add('d-none');
-    }
-
-    function openCartModal() {
-        const list = document.getElementById('cartListContainer');
-        list.innerHTML = '';
-        if (cart.length === 0) { bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide(); return; }
-        
-        cart.forEach((item, idx) => {
-            const imgHtml = item.image 
-                ? `<img src="${item.image}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">`
-                : `<div class="bg-light rounded d-flex align-items-center justify-content-center text-muted" style="width:50px;height:50px;"><i class="fas fa-utensils"></i></div>`;
-
-            list.innerHTML += `
-                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                    <div class="d-flex align-items-center gap-3">
-                        ${imgHtml}
-                        <div>
-                            <div class="fw-bold">${item.name} <small class="text-primary">(${item.option})</small></div>
-                            <div class="small text-muted">${item.note ? '📝 '+item.note : ''}</div>
-                            <div class="fw-bold text-primary">${item.price} ฿</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-outline-danger btn-sm border-0" onclick="removeFromCart(${idx})">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>`;
-        });
-        new bootstrap.Modal(document.getElementById('cartModal')).show();
-    }
-
-    function removeFromCart(idx) {
-        cart.splice(idx, 1);
-        updateCartUI();
-        openCartModal();
-        if(cart.length === 0) bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
-    }
-
-    // --- ส่วนส่งออเดอร์ ---
-    async function submitOrder() {
-        if(cart.length === 0) return;
-        
-        if(!currentTable) {
-             Swal.fire('Error', 'ไม่พบข้อมูลโต๊ะ กรุณารีเฟรชหน้าเว็บ', 'error');
-             return;
+        if(!newName || !newPrice) {
+            Swal.fire('แจ้งเตือน', 'กรุณากรอกชื่อและราคาให้ครบถ้วน', 'warning');
+            return;
         }
 
-        Swal.fire({ title: 'กำลังส่งออเดอร์...', didOpen: () => Swal.showLoading() });
-        
-        const { data: existing } = await db.from('orders').select('*')
-            .eq('table_no', currentTable)
-            .neq('status', 'paid')
-            .maybeSingle();
+        Swal.fire({ title: 'กำลังบันทึก...', didOpen: () => Swal.showLoading() });
 
-        let err;
-        if (existing) {
-            const newItems = [...existing.items, ...cart];
-            const newTotal = existing.total_price + parseInt(document.getElementById('cartTotal').innerText);
-            const res = await db.from('orders').update({ items: newItems, total_price: newTotal, status: 'pending' }).eq('id', existing.id);
-            err = res.error;
-        } else {
-            const res = await db.from('orders').insert([{ 
-                table_no: currentTable, 
-                items: cart, 
-                total_price: parseInt(document.getElementById('cartTotal').innerText), 
-                status: 'pending' 
-            }]);
-            err = res.error;
-        }
+        const { error } = await db.from('menu_items').update({ 
+            name: newName, 
+            price: parseInt(newPrice), 
+            image_url: newImage 
+        }).eq('id', id);
 
-        if(err) {
-            Swal.fire('Error', err.message, 'error');
+        if(error) {
+            Swal.fire('Error', 'ไม่สามารถบันทึกข้อมูลได้', 'error');
         } else {
-            Swal.fire({ 
-                icon: 'success', 
-                title: 'สั่งอาหารเรียบร้อย!', 
-                text: 'อาหารกำลังไปเสิร์ฟครับ', 
-                timer: 2000, 
-                showConfirmButton: false 
-            }).then(() => {
-                cart = []; 
-                updateCartUI(); 
-                bootstrap.Modal.getInstance(document.getElementById('cartModal')).hide();
-            });
+            Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', timer: 1500, showConfirmButton: false });
+            editModalInstance.hide();
+            loadMenu(); // โหลดข้อมูลใหม่เพื่อแสดงผลล่าสุด
         }
     }
 </script>
